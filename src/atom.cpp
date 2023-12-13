@@ -2,6 +2,7 @@
 #include "atom.hpp"
 
 #include <cstring>
+#include <iostream>
 
 using namespace sim;
 
@@ -168,13 +169,24 @@ constexpr int** create_lookup()
 
 static const int *const *const SYMBOLS_R = create_lookup();
 
-const char* atom::get_symbol() const {
-	if(p == 0 && n == 0) return "γ";
-	else if(p + n == 0) return "β";
-	else if(p == 1 && n == 0) return "P";
-	else if(p == 0 && n == 1) return "N";
-	else if(p > 0 && p < 119) return SYMBOLS[p - 1];
-	else return "Unknown";
+const char* atom::get_symbol() const
+{
+	if(mass() < 2)
+	{
+		if(p + n == 0) return "β";
+		if(p == 0 && n == 0) return "γ";
+		if(p == 1 && n == 0) return "h";
+		if(p == 0 && n == 1) return "n";
+
+		return "Unknownon";
+	}
+	
+	if(p > 0 && p < 119)
+	{
+		return SYMBOLS[p - 1];
+	}
+	
+	return "Unknownium";
 }
 
 

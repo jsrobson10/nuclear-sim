@@ -15,11 +15,16 @@ private:
 	short p, n;
 
 public:
+	
+	bool excited;
 
-	constexpr atom(int p, int n) : p(p), n(n) {
+	constexpr atom(int p, int n, bool e) : p(p), n(n), excited(e) {
 	}
 
-	constexpr atom() : p(0), n(0) {
+	constexpr atom(int p, int n) : p(p), n(n), excited(false) {
+	}
+
+	constexpr atom() : p(0), n(0), excited(false) {
 	}
 
 	constexpr int mass() const {
@@ -41,7 +46,7 @@ public:
 	static atom from_symbol(const char* sym, int mass);
 
 	constexpr bool friend operator==(const atom& a, const atom& b) {
-		return a.p == b.p && a.n == b.n;
+		return a.p == b.p && a.n == b.n && a.excited == b.excited;
 	}
 	
 	constexpr atom friend operator+(const atom& a, const atom& b) {
@@ -54,17 +59,22 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& o, const atom& b)
 	{
-		if(b.mass() < 2)
+		if(b.excited)
 		{
-			o << b.get_symbol();
+			o << "*";
+		}
 
+		o << b.get_symbol();
+
+		if(b.mass() == 0)
+		{
 			if(b.protons() > 0) o << "+";
 			else if(b.protons() < 0) o << "-";
 		}
 
-		else
+		else if(b.mass() > 1)
 		{
-			o << b.get_symbol() << "-" << b.mass();
+			o << "-" << b.mass();
 		}
 
 		return o;
@@ -85,6 +95,7 @@ public:
 	constexpr atom& operator=(const atom& b) {
 		p = b.p;
 		n = b.n;
+		excited = b.excited;
 		return *this;
 	}
 	
@@ -108,16 +119,15 @@ struct atoms : atom
 	}
 };
 
-
 }
 
 template<> struct std::hash<sim::atom>
 {
 	size_t operator() (sim::atom const& a) const noexcept
 	{
-		size_t h1 = std::hash<int>{}(a.protons());
-		size_t h2 = std::hash<int>{}(h1 ^ a.neutrons());
-		return h1 ^ h2;
+		size_t h1 = std::hash<size_t>{}(a.protons());
+		size_t h2 = std::hash<size_t>{}(h1 ^ a.neutrons());
+		return h2 ^ a.excited;
 	}
 };
 
