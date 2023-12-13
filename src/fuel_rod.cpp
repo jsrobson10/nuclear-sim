@@ -35,7 +35,7 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 
 		else
 		{
-			atom n = decay::calc_nuceli(gen, a);
+			atom n = decay::get_mode(a);
 
 			add_mass(n, loop);
 			add_mass(a - n, loop);

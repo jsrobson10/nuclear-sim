@@ -12,10 +12,10 @@ static const atom FISSILE_TYPES[] = {
 	{94, 145},
 };
 
-std::array<atoms, 5> decay::calc_for_types(std::mt19937& gen, atom a)
+/*std::array<atoms, 5> decay::calc_for_types(std::mt19937& gen, atom a)
 {
 	std::array<atoms, 5> atoms_arr;
-/*	std::array<double 5> weights;
+	std::array<double 5> weights;
 
 	double weight_at = 0;
 
@@ -25,12 +25,12 @@ std::array<atoms, 5> decay::calc_for_types(std::mt19937& gen, atom a)
 		weights[i] = weight_at;
 
 		std::cout << 
-	}*/
+	}
 
 	return atoms_arr;
-}
+}*/
 
-atom decay::get_mode(std::mt19937& gen, atom a)
+atom decay::get_mode(atom a)
 {
 	atom stable_type{0, 0};
 	double stable_hl = LONG_MIN;
