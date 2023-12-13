@@ -3,6 +3,7 @@
 #include "half_life.hpp"
 #include "decay.hpp"
 
+#include <set>
 #include <map>
 #include <iostream>
 #include <random>
@@ -14,6 +15,7 @@ using namespace sim;
 void fuel_rod::add_mass(atom a, long c)
 {
 	all[a] += c;
+	mass += c * a.mass();
 }
 
 static void update_decay(fuel_rod& p, atom a, long loop)
@@ -97,15 +99,72 @@ static void update_fissile(fuel_rod& p, std::mt19937& gen, atom a, long loop)
 	p.add_mass({0, 0}, loop);
 }
 
+void fuel_rod::update_neutrons(std::mt19937& gen)
+{
+	// get all the neutrons
+	std::set<long> neutrons;
+	std::uniform_int_distribution<long> dist_n(0, mass - 1);
+	long& n_count = all[atom(0, 1, true)];
+
+	for(long i = 0; i < n_count; i++)
+	{
+		neutrons.insert(dist_n(gen));
+	}
+
+	auto it_n = neutrons.begin();
+	long mass_at = 0;
+	long mass_n = 0;
+
+	for(auto& [a, c] : all)
+	{
+		mass_at += a.mass() * c;
+
+		if(c <= 0 || a.mass() == 0 || a.protons() == 0)
+		{
+			continue;
+		}
+
+		long n = 0;
+
+		while(it_n != neutrons.end() && mass_n < mass_at)
+		{
+			mass_n = *it_n;
+			it_n++;
+			n++;
+		}
+
+		if(n == 0)
+		{
+			continue;
+		}
+		
+		if(decay::is_fissile(a))
+		{
+			update_fissile(*this, gen, a + atom{0, 1}, n);
+		}
+
+		else
+		{
+			add_mass(a + atom{0, 1}, n);
+		}
+
+		n_count -= n;
+		mass -= a.mass() * n;
+		c -= n;
+	}
+}
+
 void fuel_rod::update(std::mt19937& gen, double secs)
 {
 	auto next = all.begin();
-	
+	update_neutrons(gen);
+
+	// do all other nuculei
 	for(auto it = all.begin(); it != all.end(); it = next)
 	{
+		auto& [a, c] = *it;
 		next = it;
 		next++;
-		auto& [a, c] = *it;
 
 		if(c <= 0)
 		{
@@ -134,6 +193,7 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 		}
 		
 		c -= loop;
+		mass -= loop * a.mass();
 	}
 }
 

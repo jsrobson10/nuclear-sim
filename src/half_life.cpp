@@ -10,6 +10,8 @@ static const std::unordered_map<atom, int8_t> lookup = init_lookup();
 
 long double half_life::get(atom a)
 {
+	a.excited = false;
+	
 	if(a.mass() <= 0 && (a.protons() == -1 || a.protons() == 1)) return 22;
 
 	auto it = lookup.find(a);
