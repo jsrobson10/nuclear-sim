@@ -15,6 +15,7 @@ public:
 
 	std::unordered_map<atom, long> all;
 	
+	long calculate_mass();
 	void add_mass(atom a, long c);
 	void update(std::mt19937& gen, double secs);
 	void display(int top);

@@ -82,13 +82,13 @@ static void update_fissile(fuel_rod& p, std::mt19937& gen, atom a, long loop)
 			r1 = do_single_fission(gen, a_n, mass_1);
 		}
 		
-		atom r2 = a - r1;
+		atom r2 = a_n - r1;
 
 		r1.excited = true;
 		r2.excited = true;
 
 		p.add_mass(r1, 1);
-		p.add_mass(a - r1, 1);
+		p.add_mass(a_n - r1, 1);
 		p.add_mass({0, 1, true}, n);
 
 //		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
@@ -135,6 +135,18 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 		
 		c -= loop;
 	}
+}
+
+long fuel_rod::calculate_mass()
+{
+	long mass = 0;
+
+	for(auto [a, c] : all)
+	{
+		mass += a.mass() * c;
+	}
+
+	return mass;
 }
 
 void fuel_rod::display(int top)

@@ -15,5 +15,8 @@ int main()
 		fr.update(gen, 1000000000);
 		fr.display(40);
 	}
+
+	// verify whether the conservation of mass remains true in this simulation (it should be)
+	std::cout << "final mass is: " << fr.calculate_mass() << std::endl;
 }
 
