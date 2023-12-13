@@ -46,7 +46,6 @@ atom decay::get_mode(atom a)
 		}
 	}
 
-//	std::cout << "decay " << a << " into " << stable_type << " and " << (a - stable_type) << std::endl;
 
 	return stable_type;
 }

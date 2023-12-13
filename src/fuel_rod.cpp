@@ -25,6 +25,13 @@ static void update_decay(fuel_rod& p, atom a, long loop)
 	{
 		o = atom{0, 1, true};
 		p.add_mass(o, loop);
+		
+		std::cout << "decay " << a << " via " << n << " into " << o << " and " << (a - n - o) << std::endl;
+	}
+
+	else
+	{
+		std::cout << "decay " << a << " via " << n << " into " << (a - n - o) << std::endl;
 	}
 
 	p.add_mass(n, loop);
@@ -83,6 +90,8 @@ static void update_fissile(fuel_rod& p, std::mt19937& gen, atom a, long loop)
 		p.add_mass(r1, 1);
 		p.add_mass(a - r1, 1);
 		p.add_mass({0, 1, true}, n);
+
+		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
 	}
 	
 	p.add_mass({0, 0}, loop);

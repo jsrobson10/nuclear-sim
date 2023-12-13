@@ -173,8 +173,8 @@ const char* atom::get_symbol() const
 {
 	if(mass() < 2)
 	{
-		if(p + n == 0) return "β";
 		if(p == 0 && n == 0) return "γ";
+		if(p + n == 0) return "β";
 		if(p == 1 && n == 0) return "h";
 		if(p == 0 && n == 1) return "n";
 
