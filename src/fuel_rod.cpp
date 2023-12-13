@@ -18,7 +18,7 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 {
 	for(auto& [a, c] : all)
 	{
-		if(c <= 0) continue;
+		if(c <= 0 || a.mass() == 0) continue;
 
 		long double hl = secs / std::pow(10, half_life::get(a));
 		long double p = std::pow(0.5, hl);
@@ -39,6 +39,7 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 
 			add_mass(n, loop);
 			add_mass(a - n, loop);
+			add_mass({0, 0}, loop);
 		}
 		
 		c -= loop;
