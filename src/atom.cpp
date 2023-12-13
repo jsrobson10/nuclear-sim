@@ -166,7 +166,7 @@ constexpr int** create_lookup()
 	return lookup;
 }
 
-static const int* const* SYMBOLS_R = create_lookup();
+static const int *const *const SYMBOLS_R = create_lookup();
 
 const char* atom::get_symbol() const {
 	if(p == 0 && n == 0) return "γ";
