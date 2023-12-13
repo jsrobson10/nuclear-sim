@@ -26,12 +26,12 @@ static void update_decay(fuel_rod& p, atom a, long loop)
 		o = atom{0, 1, true};
 		p.add_mass(o, loop);
 		
-		std::cout << "decay " << a << " via " << n << " into " << o << " and " << (a - n - o) << std::endl;
+//		std::cout << "decay " << a << " via " << n << " into " << o << " and " << (a - n - o) << std::endl;
 	}
 
 	else
 	{
-		std::cout << "decay " << a << " via " << n << " into " << (a - n - o) << std::endl;
+//		std::cout << "decay " << a << " via " << n << " into " << (a - n - o) << std::endl;
 	}
 
 	p.add_mass(n, loop);
