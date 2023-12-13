@@ -8,4 +8,7 @@ These may definitely be inaccurate, but they make things simpler in terms of sim
 2. The mode a nuculei will decay in is fixed and will decay depending on whichever end result has the longest half life (and is most stable). 
     - This seems true for most cases I tested it for, when considering alpha, beta-, and beta+. It is not perfect. 
 3. Decay via beta- of a super excited nuculei will ALWAYS release 1 neutron. 
+4. Free neutrons will always be distributed among nuculei, with bigger masses linearly taking more free neutrons. 
+5. Nuclear fission will always produce neutrons with a linearly distributed integer between 1 and 5. 
+
 

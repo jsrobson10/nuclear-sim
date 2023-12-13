@@ -8,7 +8,7 @@ int main()
 	std::mt19937 gen(rd());
 
 	sim::fuel_rod fr;
-	fr.add_mass(sim::atom::from_symbol("U", 235), 250000);
+	fr.add_mass(sim::atom::from_symbol("U", 235), 500000);
 	fr.add_mass(sim::atom::from_symbol("U", 238), 1000000);
 	fr.add_mass({0, 1, true}, 1000);
 
