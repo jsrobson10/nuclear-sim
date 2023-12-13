@@ -91,7 +91,7 @@ static void update_fissile(fuel_rod& p, std::mt19937& gen, atom a, long loop)
 		p.add_mass(a - r1, 1);
 		p.add_mass({0, 1, true}, n);
 
-		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
+//		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
 	}
 	
 	p.add_mass({0, 0}, loop);
