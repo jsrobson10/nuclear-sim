@@ -38,6 +38,8 @@ public:
 		return atom(p, m - p);
 	}
 
+	static atom from_symbol(const char* sym, int mass);
+
 	constexpr bool friend operator==(const atom& a, const atom& b) {
 		return a.p == b.p && a.n == b.n;
 	}
@@ -114,7 +116,7 @@ template<> struct std::hash<sim::atom>
 	size_t operator() (sim::atom const& a) const noexcept
 	{
 		size_t h1 = std::hash<int>{}(a.protons());
-		size_t h2 = std::hash<int>{}(a.neutrons());
+		size_t h2 = std::hash<int>{}(h1 ^ a.neutrons());
 		return h1 ^ h2;
 	}
 };
