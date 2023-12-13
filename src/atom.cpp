@@ -126,8 +126,9 @@ static const char* SYMBOLS[]
 };
 
 const char* atom::get_symbol() const {
-	if(p == -1 && n == 1) return "Beta";
-	else if(p == 1 && n == -1) return "BetaP";
+	if(p == 0 && n == 0) return "γ";
+	else if(p + n == 0) return "β";
+	else if(p == 1 && n == 0) return "P";
 	else if(p == 0 && n == 1) return "N";
 	else if(p > 0 && p < 119) return SYMBOLS[p - 1];
 	else return "Unknown";

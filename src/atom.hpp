@@ -50,8 +50,21 @@ public:
 		return {a.p - b.p, a.n - b.n};
 	}
 
-	friend std::ostream& operator<<(std::ostream& o, const atom& b) {
-		o << b.get_symbol() << "-" << b.mass();
+	friend std::ostream& operator<<(std::ostream& o, const atom& b)
+	{
+		if(b.mass() < 2)
+		{
+			o << b.get_symbol();
+
+			if(b.protons() > 0) o << "+";
+			else if(b.protons() < 0) o << "-";
+		}
+
+		else
+		{
+			o << b.get_symbol() << "-" << b.mass();
+		}
+
 		return o;
 	}
 
