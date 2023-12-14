@@ -12,7 +12,7 @@ long double half_life::get(atom a)
 {
 	a.excited = false;
 	
-	if(a.mass() <= 0 && (a.protons() == -1 || a.protons() == 1)) return 22;
+	if(a.mass() <= 0 && (a.p == -1 || a.p == 1)) return 22;
 
 	auto it = lookup.find(a);
 

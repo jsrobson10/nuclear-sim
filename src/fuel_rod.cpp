@@ -12,11 +12,15 @@
 
 using namespace sim;
 
+void fuel_rod::add_mass(int id, atom a, long c)
+{
+	all[id][a] += c;
+	mass += c * a.mass();
+}
 
 void fuel_rod::add_mass(atom a, long c)
 {
-	all[a] += c;
-	mass += c * a.mass();
+	add_mass(0, a, c);
 }
 
 static void update_decay(atom_map& am, atom a, long loop)
@@ -24,7 +28,7 @@ static void update_decay(atom_map& am, atom a, long loop)
 	atom n = decay::get_mode(a);
 	atom o = {0, 0};
 	
-	if(a.excited && n == atom{-1, 1} && a.neutrons() > 2)
+	if(a.excited && n == atom{-1, 1} && a.n > 2)
 	{
 		o = atom{0, 1, true};
 		am[o] += loop;
@@ -46,8 +50,8 @@ static atom do_single_fission(std::mt19937& gen, atom a, int mass_1)
 {
 	std::uniform_real_distribution<double> dist;
 	
-	int p = a.protons();
-	int n = a.neutrons();
+	int p = a.p;
+	int n = a.n;
 	
 	for(int i = 0; i < mass_1; i++)
 	{
@@ -64,7 +68,7 @@ static atom do_single_fission(std::mt19937& gen, atom a, int mass_1)
 		}
 	}
 
-	return {a.protons() - p, a.neutrons() - n};
+	return {a.p - p, a.n - n};
 }
 
 static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
@@ -87,11 +91,8 @@ static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
 		
 		atom r2 = a_n - r1;
 
-		r1.excited = true;
-		r2.excited = true;
-
-		am[r1] += 1;
-		am[r2] += 1;
+		am[!r1] += 1;
+		am[!r2] += 1;
 		am[atom(0, 1, true)] += n;
 
 //		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
@@ -100,12 +101,12 @@ static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
 	am[atom(0, 0)] += loop;
 }
 
-void fuel_rod::update_neutrons(atom_map& am, std::mt19937& gen)
+void fuel_rod::update_neutrons(std::map<int, atom_map>& ac, std::mt19937& gen)
 {
 	// get all the neutrons
 	std::set<long> neutrons;
 	std::uniform_int_distribution<long> dist_n(0, mass - 1);
-	long& n_count = all[atom(0, 1, true)];
+	long& n_count = all[0][atom(0, 1, true)];
 
 	for(long i = 0; i < n_count; i++)
 	{
@@ -116,57 +117,61 @@ void fuel_rod::update_neutrons(atom_map& am, std::mt19937& gen)
 	long mass_at = 0;
 	long mass_n = 0;
 
-	for(auto& [a, c] : all)
+	for(auto& [id, cluster] : all)
 	{
-		mass_at += a.mass() * c;
+		atom_map& am = ac[id];
 
-		if(c <= 0 || a.mass() == 0 || a.protons() == 0)
+		for(auto& [a, c] : cluster)
 		{
-			continue;
-		}
+			mass_at += a.mass() * c;
 
-		long n = 0;
+			if(c <= 0 || a.mass() == 0 || a.p == 0)
+			{
+				continue;
+			}
 
-		while(it_n != neutrons.end() && mass_n < mass_at)
-		{
-			mass_n = *it_n;
-			it_n++;
-			n++;
-		}
+			long n = 0;
 
-		if(n == 0)
-		{
-			continue;
-		}
+			while(it_n != neutrons.end() && mass_n < mass_at)
+			{
+				mass_n = *it_n;
+				it_n++;
+				n++;
+			}
 
-		if(n > c)
-		{
-			n = c;
-		}
-		
-		atom a_n = a + atom{0, 1};
-		a_n.excited = true;
-		
-		if(decay::is_fissile(a))
-		{
-			update_fissile(am, gen, a_n, n);
-		}
+			if(n == 0)
+			{
+				continue;
+			}
 
-		else
-		{
-			am[a_n] += n;
-		}
+			if(n > c)
+			{
+				n = c;
+			}
+			
+			atom a_n = !(a + atom{0, 1});
+			
+			if(decay::is_fissile(a))
+			{
+				update_fissile(am, gen, a_n, n);
+			}
 
-		n_count -= n;
-		c -= n;
+			else
+			{
+				am[a_n] += n;
+			}
+
+			n_count -= n;
+			c -= n;
+		}
 	}
 }
 
-void fuel_rod::update_decays(atom_map& am, std::mt19937& gen, double secs)
+void fuel_rod::update_decays(atom_map& cluster, atom_map& am, std::mt19937& gen, double secs)
 {
-	auto next = all.begin();
+	auto next = cluster.begin();
 
-	for(auto it = all.begin(); it != all.end(); it = next)
+	for(auto it = next; it != cluster.end(); it = next)
 	{
 		auto& [a, c] = *it;
 		next = it;
@@ -174,7 +179,7 @@ void fuel_rod::update_decays(atom_map& am, std::mt19937& gen, double secs)
 
 		if(c <= 0)
 		{
-			all.erase(it);
+			cluster.erase(it);
 			continue;
 		}
 
@@ -204,13 +209,33 @@ void fuel_rod::update_decays(atom_map& am, std::mt19937& gen, double secs)
 
 void fuel_rod::update(std::mt19937& gen, double secs)
 {
-	atom_map am;
-	update_neutrons(am, gen);
-	update_decays(am, gen, secs);
+	std::map<int, atom_map> ac;
+	
+	update_neutrons(ac, gen);
 
-	for(auto [a, n] : am)
+	for(auto& [id, cluster] : all)
 	{
-		all[a] += n;
+		update_decays(cluster, ac[id], gen, secs);
+	}
+
+	atom_map& cluster_0 = all[0];
+
+	for(auto& [id, am] : ac)
+	{
+		atom_map& cluster = all[id];
+
+		for(auto [a, n] : am)
+		{
+			if(a.p == 0 && a.n == 1)
+			{
+				cluster_0[a] += n;
+			}
+
+			else
+			{
+				cluster[a] += n;
+			}
+		}
 	}
 }
 
@@ -218,40 +243,74 @@ long fuel_rod::calculate_mass()
 {
 	long mass = 0;
 
-	for(auto [a, c] : all)
+	for(auto& [id, cluster] : all)
 	{
-		mass += a.mass() * c;
+		for(auto [a, c] : cluster)
+		{
+			mass += a.mass() * c;
+		}
 	}
 
 	return mass;
 }
 
-void fuel_rod::display(int top)
+void fuel_rod::display_cluster(int id, int top)
 {
-	std::multimap<long, atom, std::greater<int>> all_sorted;
+	std::multimap<long, atom, std::greater<int>> sorted;
+	atom_map& cluster = all[id];
+	int at = 0;
 	
-	for(auto [a, c] : all)
+	for(auto [a, c] : cluster)
 	{
 		if(c <= 0) continue;
-		all_sorted.insert({c, a});
+		sorted.insert({c, a});
 	}
-	
-	std::cout << std::endl << "Sample contents:" << std::endl;
-	
-	int at = 0;
 
-	for(auto [c, a] : all_sorted)
+	std::cout << "\nsample contents (cluster " << id << "):\n";
+
+	for(auto [c, a] : sorted)
 	{
 		if(++at > top) break;
 		std::cout << "  " << a << ": " << c << std::endl;
 	}
 
-	if(at != all_sorted.size())
+	if(at != sorted.size())
 	{
-		std::cout << "... " << (all_sorted.size() - at) << " hidden" << std::endl;
+		std::cout << "... " << (sorted.size() - at) << " hidden" << std::endl;
 	}
 
 	std::cout << std::endl;
+}
+
+void fuel_rod::display_cluster(int id)
+{
+	display_cluster(id, INT_MAX);
+}
+
+void fuel_rod::display(int top)
+{
+	int cluster_count = 0;
+
+	for(auto& [id, cluster] : all)
+	{
+		if(cluster.size() > 0)
+		{
+			cluster_count++;
+		}
+	}
+
+	if(cluster_count > 1)
+	{
+		std::cout << "\nshowing all clusters:\n";
+	}
+
+	for(auto& [id, cluster] : all)
+	{
+		if(cluster.size() > 0)
+		{
+			display_cluster(id, top);
+		}
+	}
 }
 
 void fuel_rod::display()
