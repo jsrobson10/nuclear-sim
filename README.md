@@ -10,5 +10,6 @@ These may definitely be inaccurate, but they make things simpler in terms of sim
 3. Decay via beta- of a super excited nuculei will ALWAYS release 1 neutron. 
 4. Free neutrons will always be distributed among nuculei, with bigger masses linearly taking more free neutrons. 
 5. Nuclear fission will always produce neutrons with a linearly distributed integer between 1 and 5. 
-
+6. A neutron will always absorb into a nucleus, and will always push it into a super excited state.
+    - if this nucleus undergoes beta- decay, it will also spit out a neutron, just like with fission.
 

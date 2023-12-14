@@ -8,8 +8,10 @@
 using namespace sim;
 
 static const atom FISSILE_TYPES[] = {
-	{92, 143},
-	{94, 145},
+	atom::from_mass(92, 233),
+	atom::from_mass(92, 235),
+	atom::from_mass(94, 239),
+	atom::from_mass(94, 241)
 };
 
 /*std::array<atoms, 5> decay::calc_for_types(std::mt19937& gen, atom a)

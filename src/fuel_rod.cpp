@@ -12,13 +12,14 @@
 
 using namespace sim;
 
+
 void fuel_rod::add_mass(atom a, long c)
 {
 	all[a] += c;
 	mass += c * a.mass();
 }
 
-static void update_decay(fuel_rod& p, atom a, long loop)
+static void update_decay(atom_map& am, atom a, long loop)
 {
 	atom n = decay::get_mode(a);
 	atom o = {0, 0};
@@ -26,7 +27,7 @@ static void update_decay(fuel_rod& p, atom a, long loop)
 	if(a.excited && n == atom{-1, 1} && a.neutrons() > 2)
 	{
 		o = atom{0, 1, true};
-		p.add_mass(o, loop);
+		am[o] += loop;
 		
 //		std::cout << "decay " << a << " via " << n << " into " << o << " and " << (a - n - o) << std::endl;
 	}
@@ -36,9 +37,9 @@ static void update_decay(fuel_rod& p, atom a, long loop)
 //		std::cout << "decay " << a << " via " << n << " into " << (a - n - o) << std::endl;
 	}
 
-	p.add_mass(n, loop);
-	p.add_mass(a - n - o, loop);
-	p.add_mass({0, 0}, loop);
+	am[n] += loop;
+	am[a - n - o] += loop;
+	am[atom(0, 0)] += loop;
 }
 
 static atom do_single_fission(std::mt19937& gen, atom a, int mass_1)
@@ -66,7 +67,7 @@ static atom do_single_fission(std::mt19937& gen, atom a, int mass_1)
 	return {a.protons() - p, a.neutrons() - n};
 }
 
-static void update_fissile(fuel_rod& p, std::mt19937& gen, atom a, long loop)
+static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
 {
 	std::binomial_distribution<int> dist(a.mass(), (235.0 / 2.0 - 25.0) / 235.0);
 	std::uniform_int_distribution<int> neutron_dist(1, 5);
@@ -89,17 +90,17 @@ static void update_fissile(fuel_rod& p, std::mt19937& gen, atom a, long loop)
 		r1.excited = true;
 		r2.excited = true;
 
-		p.add_mass(r1, 1);
-		p.add_mass(a_n - r1, 1);
-		p.add_mass({0, 1, true}, n);
+		am[r1] += 1;
+		am[r2] += 1;
+		am[atom(0, 1, true)] += n;
 
 //		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
 	}
 	
-	p.add_mass({0, 0}, loop);
+	am[atom(0, 0)] += loop;
 }
 
-void fuel_rod::update_neutrons(std::mt19937& gen)
+void fuel_rod::update_neutrons(atom_map& am, std::mt19937& gen)
 {
 	// get all the neutrons
 	std::set<long> neutrons;
@@ -137,29 +138,34 @@ void fuel_rod::update_neutrons(std::mt19937& gen)
 		{
 			continue;
 		}
+
+		if(n > c)
+		{
+			n = c;
+		}
+		
+		atom a_n = a + atom{0, 1};
+		a_n.excited = true;
 		
 		if(decay::is_fissile(a))
 		{
-			update_fissile(*this, gen, a + atom{0, 1}, n);
+			update_fissile(am, gen, a_n, n);
 		}
 
 		else
 		{
-			add_mass(a + atom{0, 1}, n);
+			am[a_n] += n;
 		}
 
 		n_count -= n;
-		mass -= a.mass() * n;
 		c -= n;
 	}
 }
 
-void fuel_rod::update(std::mt19937& gen, double secs)
+void fuel_rod::update_decays(atom_map& am, std::mt19937& gen, double secs)
 {
 	auto next = all.begin();
-	update_neutrons(gen);
 
-	// do all other nuculei
 	for(auto it = all.begin(); it != all.end(); it = next)
 	{
 		auto& [a, c] = *it;
@@ -184,16 +190,27 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 
 		if(decay::is_fissile(a))
 		{
-			update_fissile(*this, gen, a, loop);
+			update_fissile(am, gen, a, loop);
 		}
 
 		else
 		{
-			update_decay(*this, a, loop);
+			update_decay(am, a, loop);
 		}
 		
 		c -= loop;
-		mass -= loop * a.mass();
+	}
+}
+
+void fuel_rod::update(std::mt19937& gen, double secs)
+{
+	atom_map am;
+	update_neutrons(am, gen);
+	update_decays(am, gen, secs);
+
+	for(auto [a, n] : am)
+	{
+		all[a] += n;
 	}
 }
 

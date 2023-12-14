@@ -9,14 +9,17 @@
 namespace sim
 {
 
+typedef std::unordered_map<atom, long> atom_map;
+
 class fuel_rod
 {
 private:
 
 	long mass = 0;
-	std::unordered_map<atom, long> all;
+	atom_map all;
 	
-	void update_neutrons(std::mt19937& gen);
+	void update_neutrons(atom_map& am, std::mt19937& gen);
+	void update_decays(atom_map& am, std::mt19937& gen, double secs);
 	
 public:
 	

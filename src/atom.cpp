@@ -175,7 +175,7 @@ const char* atom::get_symbol() const
 	{
 		if(p == 0 && n == 0) return "γ";
 		if(p + n == 0) return "β";
-		if(p == 1 && n == 0) return "h";
+		if(p == 1 && n == 0) return "p";
 		if(p == 0 && n == 1) return "n";
 
 		return "Unknownon";
