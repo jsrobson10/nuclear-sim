@@ -1,5 +1,5 @@
 
-#include "fuel_rod.hpp"
+#include "fuel/fuel_rod.hpp"
 #include <iostream>
 
 int main()
@@ -7,10 +7,12 @@ int main()
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
-	sim::fuel_rod fr;
-	fr.add_mass(0, sim::atom::from_symbol("U", 235), 500000);
-	fr.add_mass(1, sim::atom::from_symbol("Th", 232), 1000000);
-	fr.add_mass({0, 1, true}, 1000);
+	sim::fuel::fuel_rod fr;
+	fr.add_mass(0, sim::fuel::atom::from_symbol("U", 235), 500000);
+	fr.add_mass(1, sim::fuel::atom::from_symbol("H", 1), 20000000);
+	fr.add_mass(1, sim::fuel::atom::from_symbol("O", 16), 10000000);
+	fr.add_mass(2, sim::fuel::atom::from_symbol("B", 10), 10000000);
+	fr.add_mass({0, 1}, 1000);
 
 	long mass_1 = fr.calculate_mass();
 	

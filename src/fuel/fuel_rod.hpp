@@ -7,7 +7,7 @@
 
 #include "atom.hpp"
 
-namespace sim
+namespace sim::fuel
 {
 
 typedef std::unordered_map<atom, long> atom_map;
@@ -19,6 +19,7 @@ private:
 	long mass = 0;
 	std::map<int, atom_map> all;
 	
+	void update_charges(std::map<int, atom_map>& ac);
 	void update_neutrons(std::map<int, atom_map>& ac, std::mt19937& gen);
 	void update_decays(atom_map& cluster, atom_map& am, std::mt19937& gen, double secs);
 	

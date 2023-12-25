@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <cstdint>
 
-namespace sim
+namespace sim::fuel
 {
 		
 struct atom
@@ -109,9 +109,9 @@ struct atoms : atom
 
 }
 
-template<> struct std::hash<sim::atom>
+template<> struct std::hash<sim::fuel::atom>
 {
-	size_t operator() (sim::atom const& a) const noexcept
+	size_t operator() (sim::fuel::atom const& a) const noexcept
 	{
 		size_t h1 = std::hash<size_t>{}(a.p);
 		size_t h2 = std::hash<size_t>{}(h1 ^ a.n);

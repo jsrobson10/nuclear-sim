@@ -2,7 +2,7 @@
 
 #include "atom.hpp"
 
-namespace sim::half_life
+namespace sim::fuel::half_life
 {
 
 long double get(atom a);

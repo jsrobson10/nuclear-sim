@@ -5,7 +5,7 @@
 
 #include "atom.hpp"
 
-namespace sim::decay
+namespace sim::fuel::decay
 {
 
 atom get_mode(atom a);

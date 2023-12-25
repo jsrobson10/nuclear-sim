@@ -5,7 +5,7 @@
 #include <climits>
 #include <iostream>
 
-using namespace sim;
+using namespace sim::fuel;
 
 static const atom FISSILE_TYPES[] = {
 	atom::from_mass(92, 233),

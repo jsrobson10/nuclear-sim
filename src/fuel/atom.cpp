@@ -4,7 +4,7 @@
 #include <cstring>
 #include <iostream>
 
-using namespace sim;
+using namespace sim::fuel;
 
 static const int SYMBOLS_LEN = 118;
 static const char* SYMBOLS[SYMBOLS_LEN]

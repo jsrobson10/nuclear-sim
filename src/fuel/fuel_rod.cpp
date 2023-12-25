@@ -10,7 +10,7 @@
 #include <cmath>
 #include <climits>
 
-using namespace sim;
+using namespace sim::fuel;
 
 void fuel_rod::add_mass(int id, atom a, long c)
 {
@@ -26,23 +26,20 @@ void fuel_rod::add_mass(atom a, long c)
 static void update_decay(atom_map& am, atom a, long loop)
 {
 	atom n = decay::get_mode(a);
-	atom o = {0, 0};
 	
 	if(a.excited && n == atom{-1, 1} && a.n > 2)
 	{
-		o = atom{0, 1, true};
+		atom o {0, 1};
 		am[o] += loop;
-		
-//		std::cout << "decay " << a << " via " << n << " into " << o << " and " << (a - n - o) << std::endl;
+		am[a - n - o] += loop;
 	}
 
 	else
 	{
-//		std::cout << "decay " << a << " via " << n << " into " << (a - n - o) << std::endl;
+		am[a - n] += loop;
 	}
 
 	am[n] += loop;
-	am[a - n - o] += loop;
 	am[atom(0, 0)] += loop;
 }
 
@@ -93,7 +90,7 @@ static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
 
 		am[!r1] += 1;
 		am[!r2] += 1;
-		am[atom(0, 1, true)] += n;
+		am[atom(0, 1)] += n;
 
 //		std::cout << "fissioning " << n << " into " << r1 << ", " << (a - r1) << ", and " << atom{0, 1, true} << " x " << n << std::endl;
 	}
@@ -101,12 +98,27 @@ static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
 	am[atom(0, 0)] += loop;
 }
 
+void fuel_rod::update_charges(std::map<int, atom_map>& ac)
+{
+	for(auto& [id, cluster] : all)
+	{
+		long& count_p = cluster[atom(1, -1)];
+		long& count_e = cluster[atom(-1, 1)];
+		long count = std::min(count_p, count_e);
+		
+		ac[id][atom(0, 0)] += count;
+
+		count_p -= count;
+		count_e -= count;
+	}
+}
+
 void fuel_rod::update_neutrons(std::map<int, atom_map>& ac, std::mt19937& gen)
 {
 	// get all the neutrons
 	std::set<long> neutrons;
 	std::uniform_int_distribution<long> dist_n(0, mass - 1);
-	long& n_count = all[0][atom(0, 1, true)];
+	long& n_count = all[0][atom(0, 1)];
 
 	for(long i = 0; i < n_count; i++)
 	{
@@ -211,6 +223,7 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 {
 	std::map<int, atom_map> ac;
 	
+	update_charges(ac);
 	update_neutrons(ac, gen);
 
 	for(auto& [id, cluster] : all)
