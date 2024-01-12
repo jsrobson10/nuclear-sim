@@ -1,32 +1,83 @@
 
-#include "fuel/fuel_rod.hpp"
-#include <iostream>
+#include "fuel/fuel_assembly.hpp"
+
+#include <cmath>
+#include <sstream>
+#include <random>
+
+#include <unistd.h>
+#include <curses.h>
 
 int main()
 {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+	std::mt19937 gen(std::random_device{}());
 
-	sim::fuel::fuel_rod fr;
-	fr.add_mass(0, sim::fuel::atom::from_symbol("U", 235), 500000);
-	fr.add_mass(1, sim::fuel::atom::from_symbol("H", 1), 20000000);
-	fr.add_mass(1, sim::fuel::atom::from_symbol("O", 16), 10000000);
-	fr.add_mass(2, sim::fuel::atom::from_symbol("B", 10), 10000000);
-	fr.add_mass({0, 1}, 1000);
+	initscr();
+	cbreak();
+	noecho();
+	keypad(stdscr, TRUE);
+	nodelay(stdscr, TRUE);
 
-	long mass_1 = fr.calculate_mass();
+	sim::fuel::fuel_assembly fa(25, 100000000);
 	
-	for(int i = 0; i < 10000; i++)
+	fa.add_mass(sim::fuel::atom::from_symbol("U", 235), 500000);
+	fa.add_mass({0, 1}, 1000);
+
+	double r = 0;
+	double temp_out;
+	double temp_last = 0;
+	double temp = 0;
+	bool mode_a = false;
+
+	fa.set_reactivity(r);
+
+	for(;;)
 	{
-		fr.update(gen, 1);
-		fr.display(20);
+		move(0, 0);
+
+		fa.update(gen, 1);
+		temp_out = fa.extract_temperature(25, 0.01);
+		temp = fa.get_temperature();
+
+		fa.set_reactivity(r);
+
+		double m = 0;
+		std::stringstream ss;
+
+		ss << fa;
+		ss << "power output: " << temp_out << std::endl;
+		ss << "auto mode: " << mode_a << std::endl;
+
+		addstr(ss.str().c_str());
+		refresh();
+
+		if(mode_a)
+		{
+			m = (temp - temp_last > 0) ? -1 : 1;
+		}
+
+		temp_last = temp;
+
+		int c = getch();
+
+		switch(c)
+		{
+		case KEY_DOWN:
+			m = -1;
+			break;
+		case KEY_UP:
+			m = 1;
+			break;
+		case 'a':
+			mode_a = !mode_a;
+			break;
+		}
+
+		r += m * 0.01;
+
+		usleep(10000);
 	}
 
-	long mass_2 = fr.calculate_mass();
-
-	// verify whether the conservation of mass remains true in this simulation (it should be)
-	std::cout << "initial mass is " << mass_1 << std::endl;
-	std::cout << "final mass is: " << mass_2 << std::endl;
-	std::cout << "conservation of mass is " << (mass_1 == mass_2 ? "maintained." : "VIOLATED.") << std::endl;
+	endwin();
 }
 

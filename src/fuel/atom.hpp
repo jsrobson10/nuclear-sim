@@ -107,6 +107,8 @@ struct atoms : atom
 	}
 };
 
+typedef std::unordered_map<atom, long> atom_map;
+
 }
 
 template<> struct std::hash<sim::fuel::atom>

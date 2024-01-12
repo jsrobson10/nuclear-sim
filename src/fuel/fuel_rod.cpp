@@ -12,15 +12,117 @@
 
 using namespace sim::fuel;
 
+long fuel_rod::extract_energy()
+{
+	long e = energy;
+
+	energy = 0;
+
+	return e;
+}
+
 void fuel_rod::add_mass(int id, atom a, long c)
 {
-	all[id][a] += c;
-	mass += c * a.mass();
+	long m = c * a.mass();
+	section& s = all[id];
+
+	s.cluster[a] += c;
+	s.mass += m;
+	mass += m;
 }
 
 void fuel_rod::add_mass(atom a, long c)
 {
 	add_mass(0, a, c);
+}
+
+long fuel_rod::add_mass(double amount, atom_map& src)
+{
+	return add_mass(0, amount, src);
+}
+
+long fuel_rod::add_mass(int id, double amount, atom_map& src)
+{
+	section& s = all[id];
+	long count = 0;
+
+	for(auto& [a, c] : src)
+	{
+		long n = c * amount;
+
+		c -= n;
+		count += n;
+		s.mass += n;
+		mass += n;
+
+		s.cluster[a] += n;
+	}
+
+	return count;
+}
+
+long fuel_rod::get_mass() const
+{
+	return mass;
+}
+
+long fuel_rod::get_mass(int id) const
+{
+	auto it = all.find(id);
+
+	if(it == all.end()) return 0;
+	
+	return it->second.mass;
+}
+
+long fuel_rod::get_mass(atom a) const
+{
+	long size = 0;
+
+	for(auto& [id, s] : all)
+	{
+		size += s.mass;
+	}
+
+	return size;
+}
+
+long fuel_rod::get_mass(int id, atom a) const
+{
+	auto it_a = all.find(id);
+
+	if(it_a == all.end()) return 0;
+	
+	auto it_s = it_a->second.cluster.find(a);
+
+	if(it_s == it_a->second.cluster.end()) return 0;
+
+	return it_s->second;
+}
+
+long fuel_rod::remove_mass(double amount, atom_map& dst)
+{
+	return remove_mass(0, amount, dst);
+}
+
+long fuel_rod::remove_mass(int id, double amount, atom_map& dst)
+{
+	section& s = all[id];
+	long count = 0;
+
+	for(auto& [a, c] : s.cluster)
+	{
+		long n = c * amount;
+
+		c -= n;
+		count += n;
+		s.mass -= n;
+		mass -= n;
+		
+		dst[a] += n;
+	}
+
+	return count;
 }
 
 static void update_decay(atom_map& am, atom a, long loop)
@@ -100,10 +202,10 @@ static void update_fissile(atom_map& am, std::mt19937& gen, atom a, long loop)
 
 void fuel_rod::update_charges(std::map<int, atom_map>& ac)
 {
-	for(auto& [id, cluster] : all)
+	for(auto& [id, s] : all)
 	{
-		long& count_p = cluster[atom(1, -1)];
-		long& count_e = cluster[atom(-1, 1)];
+		long& count_p = s.cluster[atom(1, -1)];
+		long& count_e = s.cluster[atom(-1, 1)];
 		long count = std::min(count_p, count_e);
 		
 		ac[id][atom(0, 0)] += count;
@@ -118,7 +220,9 @@ void fuel_rod::update_neutrons(std::map<int, atom_map>& ac, std::mt19937& gen)
 	// get all the neutrons
 	std::set<long> neutrons;
 	std::uniform_int_distribution<long> dist_n(0, mass - 1);
-	long& n_count = all[0][atom(0, 1)];
+
+	section& section0 = all[0];
+	long& n_count = section0.cluster[atom(0, 1)];
 
 	for(long i = 0; i < n_count; i++)
 	{
@@ -129,11 +233,11 @@ void fuel_rod::update_neutrons(std::map<int, atom_map>& ac, std::mt19937& gen)
 	long mass_at = 0;
 	long mass_n = 0;
 
-	for(auto& [id, cluster] : all)
+	for(auto& [id, s] : all)
 	{
 		atom_map& am = ac[id];
 
-		for(auto& [a, c] : cluster)
+		for(auto& [a, c] : s.cluster)
 		{
 			mass_at += a.mass() * c;
 
@@ -172,6 +276,9 @@ void fuel_rod::update_neutrons(std::map<int, atom_map>& ac, std::mt19937& gen)
 			{
 				am[a_n] += n;
 			}
+
+			s.mass -= n;
+			section0.mass += n;
 
 			n_count -= n;
 			c -= n;
@@ -226,39 +333,42 @@ void fuel_rod::update(std::mt19937& gen, double secs)
 	update_charges(ac);
 	update_neutrons(ac, gen);
 
-	for(auto& [id, cluster] : all)
+	for(auto& [id, s] : all)
 	{
-		update_decays(cluster, ac[id], gen, secs);
+		update_decays(s.cluster, ac[id], gen, secs);
 	}
 
-	atom_map& cluster_0 = all[0];
+	section& section0 = all[0];
 
 	for(auto& [id, am] : ac)
 	{
-		atom_map& cluster = all[id];
+		section& s = all[id];
+		energy += am[atom(0, 0)];
 
 		for(auto [a, n] : am)
 		{
 			if(a.p == 0 && a.n == 1)
 			{
-				cluster_0[a] += n;
+				section0.cluster[a] += n;
+				section0.mass += n;
+				s.mass -= n;
 			}
 
 			else
 			{
-				cluster[a] += n;
+				s.cluster[a] += n;
 			}
 		}
 	}
 }
 
-long fuel_rod::calculate_mass()
+long fuel_rod::calculate_mass() const
 {
 	long mass = 0;
 
-	for(auto& [id, cluster] : all)
+	for(auto& [id, s] : all)
 	{
-		for(auto [a, c] : cluster)
+		for(auto [a, c] : s.cluster)
 		{
 			mass += a.mass() * c;
 		}
@@ -267,10 +377,20 @@ long fuel_rod::calculate_mass()
 	return mass;
 }
 
-void fuel_rod::display_cluster(int id, int top)
+void fuel_rod::display_cluster(int id, int top) const
 {
 	std::multimap<long, atom, std::greater<int>> sorted;
-	atom_map& cluster = all[id];
+	auto it_s = all.find(id);
+	
+	std::cout << "\nsample contents (cluster " << id << "):\n";
+
+	if(it_s == all.end())
+	{
+		std::cout << "empty\n";
+		return;
+	}
+
+	const atom_map& cluster = it_s->second.cluster;
 	int at = 0;
 	
 	for(auto [a, c] : cluster)
@@ -279,7 +399,6 @@ void fuel_rod::display_cluster(int id, int top)
 		sorted.insert({c, a});
 	}
 
-	std::cout << "\nsample contents (cluster " << id << "):\n";
 
 	for(auto [c, a] : sorted)
 	{
@@ -295,18 +414,18 @@ void fuel_rod::display_cluster(int id, int top)
 	std::cout << std::endl;
 }
 
-void fuel_rod::display_cluster(int id)
+void fuel_rod::display_cluster(int id) const
 {
 	display_cluster(id, INT_MAX);
 }
 
-void fuel_rod::display(int top)
+void fuel_rod::display(int top) const
 {
 	int cluster_count = 0;
 
-	for(auto& [id, cluster] : all)
+	for(auto& [id, s] : all)
 	{
-		if(cluster.size() > 0)
+		if(s.cluster.size() > 0)
 		{
 			cluster_count++;
 		}
@@ -317,16 +436,16 @@ void fuel_rod::display(int top)
 		std::cout << "\nshowing all clusters:\n";
 	}
 
-	for(auto& [id, cluster] : all)
+	for(auto& [id, s] : all)
 	{
-		if(cluster.size() > 0)
+		if(s.cluster.size() > 0)
 		{
 			display_cluster(id, top);
 		}
 	}
 }
 
-void fuel_rod::display()
+void fuel_rod::display() const
 {
 	display(INT_MAX);
 }
